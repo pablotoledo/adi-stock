@@ -1,7 +1,7 @@
 import os
 
 # Configurar el entorno de Django antes de cualquier otra importación
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.mysite.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 
 import django
 django.setup()

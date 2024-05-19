@@ -11,7 +11,7 @@ conn = psycopg2.connect(
 )
 
 # Crear un DataFrame de una consulta SQL
-query = "SELECT * FROM financialdata"
+query = "SELECT * FROM financials_financialdata"
 df = pd.read_sql_query(query, conn)
 
 # Mostrar el DataFrame

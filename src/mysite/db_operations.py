@@ -1,4 +1,4 @@
-from mysite.financials.models import FinancialData
+from financials.models import FinancialData
 
 def insert_financial_data(financial_data, ticker_symbol):
     for date, data in financial_data.iterrows():
