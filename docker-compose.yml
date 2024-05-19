@@ -15,8 +15,20 @@ services:
     networks:
       - finance-network
 
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - finance-network
+
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django-web
     command: python src/manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
