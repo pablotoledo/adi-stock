@@ -1,0 +1,1 @@
+docker run --name postgres-financials -e POSTGRES_DB=financials -e POSTGRES_USER=your_username -e POSTGRES_PASSWORD=your_password -p 5432:5432 -d postgres:latest

@@ -1,15 +1,17 @@
-# Utiliza una imagen base de Python
+# Use an official Python runtime as a parent image
 FROM python:3.10
 
-# Establece el directorio de trabajo en el contenedor
+# Set the working directory in the container
 WORKDIR /code
 
-# Copia el archivo requirements.txt y lo instala
-COPY requirements.txt /code/
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copia todo el contenido del proyecto en el contenedor
+# Copy the current directory contents into the container at /code
 COPY . /code/
 
-# Ejecuta las migraciones y el servidor de desarrollo de Django
-CMD ["python", "src/manage.py", "runserver", "0.0.0.0:8000"]
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Make port 8501 available to the world outside this container
+EXPOSE 8501
+
+# Run app.py when the container launches
+CMD ["streamlit", "run", "src/app.py"]
