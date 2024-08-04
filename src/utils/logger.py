@@ -1,29 +1,26 @@
 import logging
 
-def setup_logger(name='financials_logger', level=logging.INFO):
-    """
-    Configura y retorna un logger.
-    
-    Args:
-        name (str): Nombre del logger.
-        level (int): Nivel del logger (por defecto es logging.INFO).
-    
-    Returns:
-        logging.Logger: Logger configurado.
-    """
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    
-    # Crear un handler para la consola
+def setup_logger():
+    logger = logging.getLogger('financial_data_analyzer')
+    logger.setLevel(logging.DEBUG)
+
+    # Crear un manejador de archivo
+    file_handler = logging.FileHandler('financial_data_analyzer.log')
+    file_handler.setLevel(logging.DEBUG)
+
+    # Crear un manejador de consola
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    
-    # Crear un formato para los mensajes de log
+    console_handler.setLevel(logging.INFO)
+
+    # Crear un formateador
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)
-    
-    # Añadir el handler al logger
-    if not logger.handlers:
-        logger.addHandler(console_handler)
-    
+
+    # Agregar los manejadores al logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
     return logger
+
+logger = setup_logger()

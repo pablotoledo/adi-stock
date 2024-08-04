@@ -1,69 +1,67 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import logging
+import json
+from utils.logger import logger
 
-logging.basicConfig(level=logging.INFO)
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (pd.Timestamp, pd.Period)):
+            return obj.isoformat()
+        if pd.isna(obj) or np.isnan(obj):
+            return None
+        return super(NpEncoder, self).default(obj)
+
 
 def get_financial_data(ticker_symbol):
-    logging.info(f"Fetching data for {ticker_symbol}")
+    logger.info(f"Fetching data for {ticker_symbol}")
     company = yf.Ticker(ticker_symbol)
     
-    financials = company.financials
-    if financials.empty:
-        logging.warning(f"No financial data available for {ticker_symbol}")
+    # Obtener datos financieros
+    income_stmt = company.income_stmt
+    balance_sheet = company.balance_sheet
+    cash_flow = company.cash_flow
+
+    if income_stmt.empty and balance_sheet.empty and cash_flow.empty:
+        logger.warning(f"No financial data available for {ticker_symbol}")
         return pd.DataFrame()
 
-    financials = financials.transpose()
-    logging.info(f"Raw financial data columns: {financials.columns}")
-    financials.fillna(value=np.nan, inplace=True)
+    # Combinar todos los datos financieros
+    all_data = pd.concat([income_stmt, balance_sheet, cash_flow], axis=0)
+    all_data = all_data.transpose()
 
-    # Definir un mapeo flexible de nombres de columnas
-    column_mapping = {
-        'Sales': ['Total Revenue', 'Revenue', 'Sales', 'Operating Revenue'],
-        'EBITDA': ['EBITDA', 'Normalized EBITDA'],
-        'EBIT': ['EBIT', 'Operating Income'],
-        'Interest Expense': ['Interest Expense'],
-        'Pretax Income': ['Pretax Income', 'Income Before Tax'],
-        'Income Taxes': ['Income Tax Expense', 'Tax Provision'],
-        'Net Income': ['Net Income', 'Net Income Common Stockholders'],
-        'Diluted EPS': ['Diluted EPS'],
-        'Diluted Average Shares': ['Diluted Average Shares']
-    }
-
-    df = pd.DataFrame(index=financials.index[:10])
-
-    # Función auxiliar para obtener el valor de una columna con múltiples nombres posibles
-    def get_column_value(data, possible_names):
-        for name in possible_names:
-            if name in data.columns:
-                return data[name]
-        logging.warning(f"Could not find any matching column for {possible_names}")
-        return pd.Series([np.nan] * len(data), index=data.index)
-
-    # Llenar el DataFrame con los valores disponibles
-    for col, possible_names in column_mapping.items():
-        df[col] = get_column_value(financials, possible_names)
+    logger.info(f"Raw financial data columns: {all_data.columns}")
+    logger.debug(f"Raw financial data:\n{all_data}")
 
     # Convertir a numérico, ignorando errores
-    df = df.apply(pd.to_numeric, errors='coerce')
+    all_data = all_data.apply(pd.to_numeric, errors='coerce')
 
-    # Calcular métricas adicionales
-    if 'Sales' in df.columns and not df['Sales'].isnull().all():
-        df['Y/Y Growth %'] = df['Sales'].pct_change() * 100
-        if 'EBITDA' in df.columns:
-            df['EBITDA Margin %'] = (df['EBITDA'] / df['Sales']) * 100
-        if 'EBIT' in df.columns:
-            df['EBIT Margin %'] = (df['EBIT'] / df['Sales']) * 100
-        if 'Net Income' in df.columns:
-            df['Net Margin %'] = (df['Net Income'] / df['Sales']) * 100
-    if 'Pretax Income' in df.columns and 'Income Taxes' in df.columns:
-        df['Tax Rate'] = (df['Income Taxes'] / df['Pretax Income']) * 100
+    # Calcular algunas métricas adicionales comunes
+    if 'Total Revenue' in all_data.columns:
+        all_data['Y/Y Growth %'] = all_data['Total Revenue'].pct_change() * 100
+        if 'Net Income' in all_data.columns:
+            all_data['Net Margin %'] = (all_data['Net Income'] / all_data['Total Revenue']) * 100
+        if 'Gross Profit' in all_data.columns:
+            all_data['Gross Margin %'] = (all_data['Gross Profit'] / all_data['Total Revenue']) * 100
+    if 'EBITDA' in all_data.columns and 'Total Revenue' in all_data.columns:
+        all_data['EBITDA Margin %'] = (all_data['EBITDA'] / all_data['Total Revenue']) * 100
+    if 'Operating Income' in all_data.columns and 'Total Revenue' in all_data.columns:
+        all_data['Operating Margin %'] = (all_data['Operating Income'] / all_data['Total Revenue']) * 100
+    if 'Income Tax Expense' in all_data.columns and 'Income Before Tax' in all_data.columns:
+        all_data['Tax Rate %'] = (all_data['Income Tax Expense'] / all_data['Income Before Tax']) * 100
 
-    # Reemplazar NaN con None para que SQLAlchemy maneje correctamente estos valores
-    df = df.where(pd.notnull(df), None)
+    # Reemplazar NaN e inf con None
+    all_data = all_data.replace([np.inf, -np.inf, np.nan], None)
+    all_data = all_data.where(pd.notnull(all_data), None)
 
-    logging.info(f"Processed data columns: {df.columns}")
-    logging.info(f"Data shape: {df.shape}")
-
-    return df
+    logger.info(f"Processed data columns: {all_data.columns}")
+    logger.info(f"Data shape: {all_data.shape}")
+    logger.debug(f"Processed financial data:\n{all_data}")
+    
+    return all_data
