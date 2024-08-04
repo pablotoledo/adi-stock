@@ -36,8 +36,8 @@ def get_financial_data(ticker_symbol):
     all_data = pd.concat([income_stmt, balance_sheet, cash_flow], axis=0)
     all_data = all_data.transpose()
 
-    logger.info(f"Raw financial data columns: {all_data.columns}")
-    logger.debug(f"Raw financial data:\n{all_data}")
+    # Asegurarse de que el índice sea de tipo datetime
+    all_data.index = pd.to_datetime(all_data.index)
 
     # Convertir a numérico, ignorando errores
     all_data = all_data.apply(pd.to_numeric, errors='coerce')
@@ -56,9 +56,12 @@ def get_financial_data(ticker_symbol):
     if 'Income Tax Expense' in all_data.columns and 'Income Before Tax' in all_data.columns:
         all_data['Tax Rate %'] = (all_data['Income Tax Expense'] / all_data['Income Before Tax']) * 100
 
-    # Reemplazar NaN e inf con None
-    all_data = all_data.replace([np.inf, -np.inf, np.nan], None)
-    all_data = all_data.where(pd.notnull(all_data), None)
+    # Reemplazar inf y -inf con None, pero mantener 0
+    all_data = all_data.replace([np.inf, -np.inf], np.nan)
+    all_data = all_data.where(pd.notnull(all_data) | (all_data == 0), None)
+
+    # Ordenar por fecha
+    all_data = all_data.sort_index()
 
     logger.info(f"Processed data columns: {all_data.columns}")
     logger.info(f"Data shape: {all_data.shape}")

@@ -5,6 +5,7 @@ from models import FinancialData, engine, init_db, print_schema, drop_tables
 from finance_data import get_financial_data
 from db_operations import insert_financial_data
 from utils.logger import logger
+import plotly.express as px
 
 # Inicializar la base de datos
 init_db()
@@ -30,25 +31,33 @@ if st.button('Fetch and Analyze Data'):
         # Obtener datos financieros
         financial_data = get_financial_data(ticker_symbol)
         
-        if financial_data.empty:
-            logger.warning(f"No financial data available for {ticker_symbol}")
-            st.error(f"No se pudieron obtener datos financieros para {ticker_symbol}. Por favor, verifica el símbolo del ticker.")
-        else:
-            logger.info(f"Successfully fetched data for {ticker_symbol}")
-            # Insertar datos en la base de datos
-            insert_financial_data(financial_data, ticker_symbol)
-            
+        if not financial_data.empty:
             # Mostrar los datos
             st.write(f"Financial data for {ticker_symbol}:")
             st.dataframe(financial_data)
             
-            # Agregar más análisis y visualizaciones aquí
+            # Preparar datos para gráficos
+            financial_data.index = pd.to_datetime(financial_data.index)
+            financial_data = financial_data.sort_index()
+
+            # Gráfico de Total Revenue
             if 'Total Revenue' in financial_data.columns:
-                st.line_chart(financial_data['Total Revenue'])
+                fig_revenue = px.line(financial_data, x=financial_data.index, y='Total Revenue', 
+                                      title=f'{ticker_symbol} Total Revenue Over Time')
+                fig_revenue.update_xaxes(title='Date')
+                fig_revenue.update_yaxes(title='Total Revenue (USD)', tickformat=',.0f')
+                st.plotly_chart(fig_revenue)
                 logger.info("Displayed Total Revenue chart")
+
+            # Gráfico de Net Margin %
             if 'Net Margin %' in financial_data.columns:
-                st.line_chart(financial_data['Net Margin %'])
+                fig_margin = px.line(financial_data, x=financial_data.index, y='Net Margin %', 
+                                     title=f'{ticker_symbol} Net Margin % Over Time')
+                fig_margin.update_xaxes(title='Date')
+                fig_margin.update_yaxes(title='Net Margin %', tickformat='.2f')
+                st.plotly_chart(fig_margin)
                 logger.info("Displayed Net Margin % chart")
+
     except Exception as e:
         logger.error(f"An error occurred while processing {ticker_symbol}: {str(e)}", exc_info=True)
         st.error(f"An error occurred: {str(e)}")
