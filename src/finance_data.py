@@ -93,7 +93,7 @@ def load_historical_data(ticker_symbol):
             'Depreciación y Amortización': find_column(financial_data, ['Depreciation & Amortization', 'Depreciation And Amortization', 'Depreciation']),
             'Intereses': find_column(financial_data, ['Interest Expense', 'Interest Paid']),
             'Impuestos': find_column(financial_data, ['Income Tax Expense', 'Tax Provision']),
-            'Número de Acciones': find_column(financial_data, ['Shares Outstanding', 'Common Stock Outstanding'])
+            'Número de Acciones': find_column(financial_data, ['Diluted Average Shares', 'Basic Average Shares'])
         })
         
         # Convertir los datos a millones (si es necesario)
