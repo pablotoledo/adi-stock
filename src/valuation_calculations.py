@@ -5,10 +5,14 @@ def calculate_valuation(historical_data, years, growth_rate, operating_margin, t
     last_year = historical_data.index[-1]
     last_year_data = historical_data.loc[last_year]
     
-    projections = pd.DataFrame(index=range(int(last_year)+1, int(last_year)+years+1))
+    # Convert last_year to integer
+    start_year = last_year.year + 1
+    end_year = start_year + years
+    
+    projections = pd.DataFrame(index=range(start_year, end_year))
     
     # Proyectar ventas
-    projections['Ventas'] = last_year_data['Ventas'] * (1 + growth_rate/100) ** (projections.index - int(last_year))
+    projections['Ventas'] = last_year_data['Ventas'] * (1 + growth_rate/100) ** (projections.index - start_year + 1)
     
     # Proyectar beneficio operativo
     projections['Beneficio Operativo'] = projections['Ventas'] * operating_margin / 100
