@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy.orm import Session
 from models import FinancialData, engine, init_db, print_schema, drop_tables
-from finance_data import get_financial_data
+from finance_data import get_financial_data, load_historical_data
 from db_operations import insert_financial_data
 from utils.logger import logger
 import plotly.express as px
@@ -79,8 +79,24 @@ def main():
 
     with tabs[1]:
         st.header("Datos Históricos")
-        historical_data = historical_data_input()
-
+        # Cargar datos históricos automáticamente
+        historical_data = load_historical_data(ticker_symbol)
+        
+        # Mostrar los datos históricos cargados automáticamente
+        if historical_data is not None and not historical_data.empty:
+            st.write("Datos históricos cargados automáticamente:")
+            st.dataframe(historical_data)
+            
+            # Opción para editar los datos
+            if st.checkbox("Editar datos históricos"):
+                edited_data = st.data_editor(historical_data)
+                if st.button("Guardar cambios"):
+                    historical_data = edited_data
+                    st.success("Cambios guardados exitosamente")
+        else:
+            st.warning("No se pudieron cargar datos históricos automáticamente. Por favor, ingrese los datos manualmente.")
+            historical_data = historical_data_input()
+            
     with tabs[2]:
         st.header("Proyecciones Futuras")
         years, growth_rate, operating_margin, tax_rate = future_projections()
